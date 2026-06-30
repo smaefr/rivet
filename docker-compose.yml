@@ -1,0 +1,11 @@
+services:
+  rivet:
+    build: .
+    command: ["daemon", "--socket", "/tmp/rivet.sock", "--store", "/data"]
+    volumes:
+      - rivet-data:/data
+    environment:
+      RIVET_SEED: demo
+
+volumes:
+  rivet-data:
