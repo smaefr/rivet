@@ -29,6 +29,7 @@ Rivet is a mini PCR-bound secret agent, not a full measured-boot stack.
 ## Tradeoffs
 
 - Simulator mode is for development. It is not hardware root of trust.
+- Hardware mode shells out to `tpm2-tools` and trusts that binary plus `/dev/tpmrm0`.
 - No full EK certificate chain or TPM 2.0 policy sessions.
 - PCR 0–7 only. Application PCRs (8+) are out of scope.
 - No remote verifier service; `rivet verify` is a local check.

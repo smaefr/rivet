@@ -10,6 +10,7 @@ from rivet import PCR_BANK, __version__
 from rivet.crypto import pcr_digest
 from rivet.daemon import RivetAgent, serve
 from rivet.store import SecretStore
+from rivet.hardware import HardwareTpm, tools_present
 from rivet.tpm import open_backend, tpm_device_present
 
 
@@ -17,6 +18,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rivet", description="PCR-bound secret agent")
     parser.add_argument("--version", action="version", version=f"rivet {__version__}")
     parser.add_argument("--store", type=Path, help="state directory")
+    parser.add_argument(
+        "--backend",
+        choices=("auto", "sim", "hardware"),
+        default="auto",
+        help="auto uses tpm2-tools when /dev/tpmrm0 is readable",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("pcr", help="print PCR 0-7")
@@ -45,13 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    tpm = open_backend(seed=os.environ.get("RIVET_SEED", "").encode() or None)
+    seed = os.environ.get("RIVET_SEED", "").encode() or None
+    tpm = _select(args.backend, seed)
     store = SecretStore(args.store)
     if args.cmd == "detect":
-        if tpm_device_present():
-            print("simulator (TPM device found, hardware backend not implemented)")
-        else:
-            print("simulator")
+        print(_detect_label(tpm))
         return 0
     if args.cmd == "pcr":
         for idx, value in tpm.read_pcrs().items():
@@ -92,6 +97,24 @@ def main(argv: list[str] | None = None) -> int:
         print(args.socket)
         server.serve_forever()
     return 2
+
+
+def _select(mode: str, seed: bytes | None):
+    if mode == "hardware" or (mode == "auto" and tpm_device_present() and tools_present()):
+        if not tpm_device_present() or not tools_present():
+            from rivet.errors import TpmUnavailable
+
+            raise TpmUnavailable("hardware backend needs /dev/tpmrm0 and tpm2-tools")
+        return HardwareTpm()
+    return open_backend(seed)
+
+
+def _detect_label(tpm: object) -> str:
+    if isinstance(tpm, HardwareTpm):
+        return "hardware"
+    if tpm_device_present() and not tools_present():
+        return "simulator (install tpm2-tools to use /dev/tpmrm0)"
+    return "simulator"
 
 
 if __name__ == "__main__":
