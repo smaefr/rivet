@@ -48,8 +48,10 @@ def main(argv: list[str] | None = None) -> int:
     tpm = open_backend(seed=os.environ.get("RIVET_SEED", "").encode() or None)
     store = SecretStore(args.store)
     if args.cmd == "detect":
-        kind = "hardware" if tpm_device_present() else "simulator"
-        print(kind)
+        if tpm_device_present():
+            print("simulator (TPM device found, hardware backend not implemented)")
+        else:
+            print("simulator")
         return 0
     if args.cmd == "pcr":
         for idx, value in tpm.read_pcrs().items():

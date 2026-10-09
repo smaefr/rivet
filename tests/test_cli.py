@@ -8,7 +8,10 @@ def test_detect_and_pcr(capsys, monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("RIVET_SEED", "unit")
     monkeypatch.setattr("rivet.cli.tpm_device_present", lambda: False)
     assert main(["--store", str(tmp_path), "detect"]) == 0
-    assert "simulator" in capsys.readouterr().out
+    assert capsys.readouterr().out.strip() == "simulator"
+    monkeypatch.setattr("rivet.cli.tpm_device_present", lambda: True)
+    assert main(["--store", str(tmp_path), "detect"]) == 0
+    assert "not implemented" in capsys.readouterr().out
     assert main(["--store", str(tmp_path), "pcr"]) == 0
     out = capsys.readouterr().out
     assert "pcr0:" in out

@@ -5,8 +5,10 @@ kernel), seals a wrapping key to that baseline, and refuses to unseal if the
 boot state drifted. Secrets such as API tokens stay ciphertext until the TPM
 policy matches.
 
-Without `/dev/tpmrm0`, Rivet uses an in-process simulator that keeps the same
-PCR-binding rule so the tool is testable on a laptop.
+Rivet currently runs only against an in-process simulator that keeps the same
+PCR-binding rule. It does not talk to `/dev/tpmrm0` yet; a real TPM 2.0 backend
+(for example via tpm2-tss) is the main missing piece, and sealed blobs from the
+simulator are not hardware-protected.
 
 ```bash
 pip install -e ".[dev]"
